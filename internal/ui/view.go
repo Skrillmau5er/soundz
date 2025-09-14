@@ -9,15 +9,14 @@ var baseStyle = lipgloss.NewStyle().
 	BorderForeground(lipgloss.Color("240"))
 
 func (m model) renderArt() string {
-	art := `
-███████╗ ██████╗ ██╗   ██╗███╗   ██╗██████╗ ███████╗
-██╔════╝██╔═══██╗██║   ██║████╗  ██║██╔══██╗    ███║
-███████╗██║   ██║██║   ██║██╔██╗ ██║██║  ██║  ███╔═╝
-╚════██║██║   ██║██║   ██║██║╚██╗██║██║  ██║███╔═╝
-███████║╚██████╔╝╚██████╔╝██║ ╚████║██████╔╝███████╗
-╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚══════╝`
-	artStyle := lipgloss.NewStyle().Width(172).Align(lipgloss.Center)
-	return artStyle.Render(art)
+	return `
+    ███████╗ ██████╗ ██╗   ██╗███╗   ██╗██████╗ ███████╗
+    ██╔════╝██╔═══██╗██║   ██║████╗  ██║██╔══██╗    ███║
+    ███████╗██║   ██║██║   ██║██╔██╗ ██║██║  ██║  ███╔═╝
+    ╚════██║██║   ██║██║   ██║██║╚██╗██║██║  ██║███╔═╝
+    ███████║╚██████╔╝╚██████╔╝██║ ╚████║██████╔╝███████╗
+    ╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚══════╝
+`
 }
 
 func (m model) renderTable() string {
@@ -36,17 +35,19 @@ func (m model) renderBottom() string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, songPos, m.progress.View(), songLength)
 }
 
-func (m model) View() string {
-	blockB := "...\n...\n..."
-	blockA := "...\n...\n...\n...\n..."
+func (m model) renderHelp() string {
+	style := lipgloss.NewStyle().Padding(2)
 
-	// Join on the top edge
-	str := lipgloss.JoinHorizontal(lipgloss.Top, blockA, blockB)
+	helpView := m.help.View(m.keys)
+	return style.Render(helpView)
+}
+
+func (m model) View() string {
+
 	return lipgloss.JoinVertical(
 		lipgloss.Top,
-		m.renderArt(),
+		lipgloss.JoinHorizontal(lipgloss.Left, m.renderArt(), m.renderHelp()),
 		m.renderTable(),
 		m.renderBottom(),
-		str,
 	)
 }

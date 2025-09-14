@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"example.com/soundz/internal/player"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gopxl/beep/v2/speaker"
@@ -147,22 +148,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.table.SetWidth(msg.Width - 2) // Set the table width to the terminal width
 		return m, nil
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
+		switch {
+		case key.Matches(msg, m.keys.Quit):
 			return m, tea.Quit
-		case "enter":
+		case key.Matches(msg, m.keys.PlaySong):
 			return m.startSong(m.table.Cursor())
-		case " ":
+		case key.Matches(msg, m.keys.PlayPause):
 			return m.togglePauseState()
-		case "left", "h":
+		case key.Matches(msg, m.keys.Left):
 			return m.seek(cmd, "left")
-		case "right", "l":
+		case key.Matches(msg, m.keys.Right):
 			return m.seek(cmd, "right")
-		case "n":
+		case key.Matches(msg, m.keys.NextSong):
 			return m.nextPrevSong(true)
-		case "p":
+		case key.Matches(msg, m.keys.PrevSong):
 			return m.nextPrevSong(false)
-
+		case key.Matches(msg, m.keys.Help):
+			m.help.ShowAll = !m.help.ShowAll
 		}
 	case progress.FrameMsg:
 		progressModel, cmd := m.progress.Update(msg)
