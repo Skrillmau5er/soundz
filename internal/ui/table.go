@@ -1,12 +1,12 @@
 package ui
 
 import (
-	"example.com/soundz/internal/player"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/skrillmau5er/soundz/internal/player"
 )
 
-func GetTable() table.Model {
+func GetTable(currentDir string) table.Model {
 	columns := []table.Column{
 		{Title: " ", Width: 4},
 		{Title: "Title", Width: 30},
@@ -16,7 +16,7 @@ func GetTable() table.Model {
 		{Title: "Format", Width: 6},
 	}
 
-	rows := player.GetSongsInDir()
+	rows := player.GetSongsInDir(currentDir)
 
 	t := table.New(
 		table.WithColumns(columns),

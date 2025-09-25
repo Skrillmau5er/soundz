@@ -1,14 +1,16 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"math"
+	"time"
 
-	"example.com/soundz/internal/player"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gopxl/beep/v2/speaker"
+	"github.com/skrillmau5er/soundz/internal/player"
 )
 
 func (m model) Cleanup() {
@@ -127,7 +129,7 @@ func (m *model) updateUIWidths(termWidth int) {
 	colsToUpdate := []string{"Title", "Artist", "File Name"}
 	width := int(math.Floor(float64(termWidth-30) / float64(len(colsToUpdate))))
 
-	m.progress.Width = termWidth - 10
+	m.progress.Width = termWidth - 11
 
 	cols := m.table.Columns()
 	for i := range cols {
@@ -137,13 +139,35 @@ func (m *model) updateUIWidths(termWidth int) {
 			}
 		}
 	}
+
 	m.table.SetColumns(cols)
+}
+
+func (m model) toggleDirSelect() (model, tea.Cmd) {
+	m.selectDir = !m.selectDir
+	if m.selectDir {
+		m.table.Blur()
+	} else {
+		m.table.Focus()
+	}
+
+	return m, nil
+}
+
+type clearErrorMsg struct{}
+
+func clearErrorAfter(t time.Duration) tea.Cmd {
+	return tea.Tick(t, func(_ time.Time) tea.Msg {
+		return clearErrorMsg{}
+	})
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		m.termWidth = msg.Width
+		m.termHeight = msg.Height
 		m.updateUIWidths(msg.Width)
 		m.table.SetWidth(msg.Width - 2) // Set the table width to the terminal width
 		return m, nil
@@ -151,20 +175,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keys.Quit):
 			return m, tea.Quit
-		case key.Matches(msg, m.keys.PlaySong):
-			return m.startSong(m.table.Cursor())
 		case key.Matches(msg, m.keys.PlayPause):
 			return m.togglePauseState()
-		case key.Matches(msg, m.keys.Left):
-			return m.seek(cmd, "left")
-		case key.Matches(msg, m.keys.Right):
-			return m.seek(cmd, "right")
-		case key.Matches(msg, m.keys.NextSong):
-			return m.nextPrevSong(true)
-		case key.Matches(msg, m.keys.PrevSong):
-			return m.nextPrevSong(false)
 		case key.Matches(msg, m.keys.Help):
 			m.help.ShowAll = !m.help.ShowAll
+		case key.Matches(msg, m.keys.ChangeDir):
+			return m.toggleDirSelect()
+		}
+
+		if !m.selectDir {
+			switch {
+			case key.Matches(msg, m.keys.NextSong):
+				return m.nextPrevSong(true)
+			case key.Matches(msg, m.keys.PrevSong):
+				return m.nextPrevSong(false)
+			case key.Matches(msg, m.keys.Left):
+				return m.seek(cmd, "left")
+			case key.Matches(msg, m.keys.Right):
+				return m.seek(cmd, "right")
+			case key.Matches(msg, m.keys.PlaySong):
+				return m.startSong(m.table.Cursor())
+			}
 		}
 	case progress.FrameMsg:
 		progressModel, cmd := m.progress.Update(msg)
@@ -176,5 +207,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.tickAction(false)
 	}
 	m.table, cmd = m.table.Update(msg)
+	m.dirpicker, cmd = m.dirpicker.Update(msg)
+
+	if didSelect, path := m.dirpicker.DidSelectDir(msg); didSelect {
+		m.currentDir = path
+	}
+
+	if didSelect, path := m.dirpicker.DidSelectDisabledFile(msg); didSelect {
+		m.err = errors.New(path + " is not valid.")
+		m.currentDir = ""
+		return m, tea.Batch(cmd, clearErrorAfter(2*time.Second))
+	}
+
 	return m, cmd
 }

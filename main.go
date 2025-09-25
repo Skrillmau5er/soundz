@@ -1,7 +1,7 @@
 package main
 
-import "example.com/soundz/layout"
+import "github.com/skrillmau5er/soundz/internal/ui"
 
 func main() {
-	layout.Run()
+	ui.Run()
 }

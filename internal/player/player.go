@@ -16,9 +16,9 @@ import (
 
 var supportedFileExt = []string{".wav", ".mp3", ".flac", ".ogg"}
 
-func GetSongsInDir() []table.Row {
+func GetSongsInDir(currentDir string) []table.Row {
 	rows := []table.Row{}
-	dirEntry, err := os.ReadDir("../../audio_samples")
+	dirEntry, err := os.ReadDir(currentDir)
 
 	if err != nil {
 		fmt.Println("Error reading current directory: ", err)
