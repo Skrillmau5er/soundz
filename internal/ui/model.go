@@ -7,7 +7,28 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gopxl/beep/v2"
+	"github.com/skrillmau5er/soundz/internal/components/dirpicker"
 )
+
+type model struct {
+	dirpicker        dirpicker.Model
+	keys             keyMap
+	help             help.Model
+	table            table.Model
+	progress         progress.Model
+	ctrl             *beep.Ctrl
+	streamer         beep.StreamSeekCloser
+	format           beep.Format
+	songLength       string
+	songPos          string
+	songSampleRate   beep.SampleRate
+	currentSongIndex int
+	termWidth        int
+	termHeight       int
+	selectDir        bool
+	currentDir       string
+	err              error
+}
 
 // keyMap defines a set of keybindings. To work for help it must satisfy
 // key.Map. It could also very easily be a map[string]key.Binding.
@@ -22,6 +43,7 @@ type keyMap struct {
 	PrevSong  key.Binding
 	Help      key.Binding
 	Quit      key.Binding
+	ChangeDir key.Binding
 }
 
 // ShortHelp returns keybindings to be shown in the mini help view. It's part
@@ -36,7 +58,7 @@ func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.Left, k.Right},
 		{k.PlaySong, k.PlayPause, k.NextSong, k.PrevSong},
-		{k.Help, k.Quit},
+		{k.ChangeDir, k.Help, k.Quit},
 	}
 }
 
@@ -70,7 +92,7 @@ var keys = keyMap{
 		key.WithHelp("enter", "play song"),
 	),
 	PlayPause: key.NewBinding(
-		key.WithKeys("space"),
+		key.WithKeys(" "),
 		key.WithHelp("space", "toggle pause/play"),
 	),
 	NextSong: key.NewBinding(
@@ -81,22 +103,12 @@ var keys = keyMap{
 		key.WithKeys("p"),
 		key.WithHelp("p", "previous song"),
 	),
+	ChangeDir: key.NewBinding(
+		key.WithKeys("/"),
+		key.WithHelp("/", "change directory"),
+	),
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
-}
-
-type model struct {
-	keys             keyMap
-	help             help.Model
-	table            table.Model
-	progress         progress.Model
-	ctrl             *beep.Ctrl
-	streamer         beep.StreamSeekCloser
-	format           beep.Format
-	songLength       string
-	songPos          string
-	songSampleRate   beep.SampleRate
-	currentSongIndex int
+	return m.dirpicker.Init()
 }
