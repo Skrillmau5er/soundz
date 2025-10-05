@@ -63,9 +63,37 @@ func (m model) renderDirPicker() string {
 		} else if m.currentDir == "" {
 			s.WriteString("Select a directory:")
 		} else {
-			s.WriteString("Selected file: " + m.dirpicker.Styles.Selected.Render(m.currentDir))
+			s.WriteString("Currently selected directory: " + m.dirpicker.Styles.Selected.Render(m.currentDir))
 		}
-		m.dirpicker.SetHeight(20)
+
+		// Add navigation instructions
+		instructions := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("240")).
+			Italic(true).
+			PaddingLeft(2)
+
+		navText := "(↑/j)/(↓/k): navigate • (←/h)/(→/l): exit/enter directory • g: first • G: last"
+		s.WriteString("\n" + instructions.Render(navText))
+
+		// Use dynamic height based on terminal size, but cap it at a reasonable maximum
+		// Account for: header (~8 lines) + progress (~2 lines) + instructions (~1 line) + padding (~3 lines)
+		availableHeight := m.termHeight - 14 // Leave space for header, progress, instructions, and padding
+		maxHeight := 12                      // Maximum number of items to show
+		if availableHeight > maxHeight {
+			availableHeight = maxHeight
+		}
+		// Ensure we have at least 3 items visible
+		if availableHeight < 3 {
+			availableHeight = 3
+		}
+		m.dirpicker.SetHeight(availableHeight)
+
+		// Temporary debug info (remove this later)
+		selected, min, max, height, total := m.dirpicker.GetPaginationInfo()
+		debugInfo := fmt.Sprintf(" [DEBUG: selected=%d, min=%d, max=%d, height=%d, total=%d]",
+			selected, min, max, height, total)
+		s.WriteString(debugInfo)
+
 		s.WriteString("\n\n" + m.dirpicker.View() + "\n")
 	} else {
 		s.WriteString(fmt.Sprintf("Viewing audio files from directory: %v", m.currentDir))

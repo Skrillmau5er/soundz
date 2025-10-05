@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -186,14 +185,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.selectDir {
 			switch {
 			case key.Matches(msg, m.keys.NextSong):
+				if len(m.table.Rows()) == 0 {
+					return m, nil
+				}
 				return m.nextPrevSong(true)
 			case key.Matches(msg, m.keys.PrevSong):
+				if len(m.table.Rows()) == 0 {
+					return m, nil
+				}
 				return m.nextPrevSong(false)
 			case key.Matches(msg, m.keys.Left):
 				return m.seek(cmd, "left")
 			case key.Matches(msg, m.keys.Right):
 				return m.seek(cmd, "right")
 			case key.Matches(msg, m.keys.PlaySong):
+				if len(m.table.Rows()) == 0 {
+					return m, nil
+				}
 				return m.startSong(m.table.Cursor())
 			}
 		}
@@ -211,12 +219,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if didSelect, path := m.dirpicker.DidSelectDir(msg); didSelect {
 		m.currentDir = path
-	}
-
-	if didSelect, path := m.dirpicker.DidSelectDisabledFile(msg); didSelect {
-		m.err = errors.New(path + " is not valid.")
-		m.currentDir = ""
-		return m, tea.Batch(cmd, clearErrorAfter(2*time.Second))
+		m.selectDir = false
+		m.debugMessages = append(m.debugMessages, "Selected directory: "+path)
+		m.table.SetRows(player.GetSongsInDir(path))
+		m.table.Focus()
 	}
 
 	return m, cmd

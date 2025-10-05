@@ -119,7 +119,7 @@ func DefaultStylesWithRenderer(r *lipgloss.Renderer) Styles {
 		Permission:       r.NewStyle().Foreground(lipgloss.Color("244")),
 		Selected:         r.NewStyle().Foreground(lipgloss.Color("212")).Bold(true),
 		FileSize:         r.NewStyle().Foreground(lipgloss.Color("240")).Width(fileSizeWidth).Align(lipgloss.Right),
-		EmptyDirectory:   r.NewStyle().Foreground(lipgloss.Color("240")).PaddingLeft(paddingLeft).SetString("Bummer. No Files Found."),
+		EmptyDirectory:   r.NewStyle().Foreground(lipgloss.Color("240")).PaddingLeft(paddingLeft).SetString("No directories found here"),
 	}
 }
 
@@ -234,8 +234,49 @@ func (m Model) Init() tea.Cmd {
 // SetHeight sets the height of the dirpicker.
 func (m *Model) SetHeight(height int) {
 	m.Height = height
-	if m.max > m.Height-1 {
+	// Ensure min doesn't go below 0
+	if m.min < 0 {
+		m.min = 0
+	}
+	// If we have fewer directories than height, adjust max accordingly
+	if len(m.directories) <= m.Height {
+		m.max = len(m.directories) - 1
+		m.min = 0
+	} else {
+		// Ensure max doesn't exceed the height
+		if m.max > m.min+m.Height-1 {
+			m.max = m.min + m.Height - 1
+		}
+		// Ensure max doesn't exceed the number of directories
+		if m.max >= len(m.directories) {
+			m.max = len(m.directories) - 1
+			m.min = m.max - m.Height + 1
+			if m.min < 0 {
+				m.min = 0
+			}
+		}
+	}
+	// Ensure selected is within bounds
+	if m.selected >= len(m.directories) {
+		m.selected = len(m.directories) - 1
+	}
+	if m.selected < 0 {
+		m.selected = 0
+	}
+	// Ensure selected is visible
+	if m.selected < m.min {
+		m.min = m.selected
 		m.max = m.min + m.Height - 1
+		if m.max >= len(m.directories) {
+			m.max = len(m.directories) - 1
+		}
+	}
+	if m.selected > m.max {
+		m.max = m.selected
+		m.min = m.max - m.Height + 1
+		if m.min < 0 {
+			m.min = 0
+		}
 	}
 }
 
@@ -247,12 +288,27 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			break
 		}
 		m.directories = msg.entries
-		m.max = max(m.max, m.Height-1)
+		// Reset pagination bounds when new directories are loaded
+		m.selected = 0
+		m.min = 0
+		if len(m.directories) > 0 {
+			m.max = min(len(m.directories)-1, m.Height-1)
+		} else {
+			m.max = 0
+		}
 	case tea.WindowSizeMsg:
 		if m.AutoHeight {
 			m.Height = msg.Height - marginBottom
 		}
-		m.max = m.Height - 1
+		// Ensure bounds are valid after height change
+		if len(m.directories) > 0 {
+			m.max = min(len(m.directories)-1, m.Height-1)
+		} else {
+			m.max = 0
+		}
+		if m.selected >= len(m.directories) {
+			m.selected = max(0, len(m.directories)-1)
+		}
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.KeyMap.GoToTop):
@@ -421,19 +477,13 @@ func (m Model) View() string {
 	return s.String()
 }
 
-// DidSelectDir returns whether a user has selected a file (on this msg).
-func (m Model) DidSelectDir(msg tea.Msg) (bool, string) {
-	didSelect, path := m.didSelectDir(msg)
-	if didSelect {
-		return true, path
-	}
-	return false, ""
+// GetPaginationInfo returns pagination information for debugging
+func (m Model) GetPaginationInfo() (selected, min, max, height, total int) {
+	return m.selected, m.min, m.max, m.Height, len(m.directories)
 }
 
-// DidSelectDisabledFile returns whether a user tried to select a disabled file
-// (on this msg). This is necessary only if you would like to warn the user that
-// they tried to select a disabled file.
-func (m Model) DidSelectDisabledFile(msg tea.Msg) (bool, string) {
+// DidSelectDir returns whether a user has selected a file (on this msg).
+func (m Model) DidSelectDir(msg tea.Msg) (bool, string) {
 	didSelect, path := m.didSelectDir(msg)
 	if didSelect {
 		return true, path
@@ -466,7 +516,7 @@ func (m Model) didSelectDir(msg tea.Msg) (bool, string) {
 			symlinkPath, _ := filepath.EvalSymlinks(filepath.Join(m.CurrentDirectory, f.Name()))
 			info, err := os.Stat(symlinkPath)
 			if err != nil {
-				break
+				return false, ""
 			}
 			if info.IsDir() {
 				isDir = true
@@ -474,7 +524,7 @@ func (m Model) didSelectDir(msg tea.Msg) (bool, string) {
 		}
 
 		if isDir {
-			return true, m.Path
+			return true, m.CurrentDirectory
 		}
 
 		// If the msg was not a KeyMsg, then the file could not have been selected this iteration.

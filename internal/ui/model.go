@@ -28,6 +28,7 @@ type model struct {
 	selectDir        bool
 	currentDir       string
 	err              error
+	debugMessages    []string
 }
 
 // keyMap defines a set of keybindings. To work for help it must satisfy
