@@ -44,11 +44,13 @@ func GetSongsInDir(currentDir string) []table.Row {
 			continue
 		}
 
-		length := GetFileAudioLength(name, ext)
+		filePath := currentDir + "/" + name
+
+		length := GetFileAudioLength(filePath, ext)
 
 		formatedLength := fmt.Sprintf("%v:%02d", math.Floor(float64(length)/60), length%60)
 
-		file, err := os.Open("../../audio_samples/" + name)
+		file, err := os.Open(filePath)
 
 		if err != nil {
 			fmt.Printf("Error opening file: %s", name)
@@ -111,4 +113,61 @@ func PlaySong(filePath string, extType string) (*beep.Ctrl, beep.StreamSeekClose
 	speaker.Play(ctrl)
 
 	return ctrl, streamer, format, originalSampleRate
+}
+
+// Visualizer interface for audio visualization
+type Visualizer interface {
+	Update(samples [][2]float64)
+}
+
+// PlaySongWithVisualizer plays a song and sends audio samples to the visualizer
+func PlaySongWithVisualizer(filePath string, extType string, viz Visualizer) (*beep.Ctrl, beep.StreamSeekCloser, beep.Format, beep.SampleRate) {
+	streamer, format, err := OpenFileAndDecode(filePath, extType)
+	originalSampleRate := format.SampleRate
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	sampleRate := beep.SampleRate(44100)
+
+	var finalStreamer beep.Streamer
+
+	if format.SampleRate != sampleRate {
+		// Resample first
+		resampled := beep.Resample(4, format.SampleRate, sampleRate, streamer)
+		format.SampleRate = sampleRate
+		// Then wrap with visualizer (AFTER resampling)
+		finalStreamer = &visualizerStreamer{
+			Streamer:   resampled,
+			visualizer: viz,
+		}
+	} else {
+		// Wrap with visualizer directly
+		finalStreamer = &visualizerStreamer{
+			Streamer:   streamer,
+			visualizer: viz,
+		}
+	}
+
+	ctrl := &beep.Ctrl{Streamer: finalStreamer, Paused: false}
+	speaker.Play(ctrl)
+
+	return ctrl, streamer, format, originalSampleRate
+}
+
+// visualizerStreamer wraps a beep.Streamer to capture audio samples for visualization
+type visualizerStreamer struct {
+	beep.Streamer
+	visualizer Visualizer
+}
+
+// Stream streams audio and captures samples for visualization
+func (vs *visualizerStreamer) Stream(samples [][2]float64) (n int, ok bool) {
+	n, ok = vs.Streamer.Stream(samples)
+	if ok && n > 0 {
+		// Send samples to visualizer
+		vs.visualizer.Update(samples[:n])
+	}
+	return n, ok
 }

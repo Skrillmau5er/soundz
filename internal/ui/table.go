@@ -15,7 +15,6 @@ func GetTable(currentDir string) table.Model {
 		{Title: "Length", Width: 6},
 		{Title: "Format", Width: 6},
 	}
-
 	rows := player.GetSongsInDir(currentDir)
 
 	t := table.New(

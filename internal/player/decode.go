@@ -12,7 +12,7 @@ import (
 )
 
 func OpenFileAndDecode(filePath string, extType string) (beep.StreamSeekCloser, beep.Format, error) {
-	f, err := os.Open("../../audio_samples/" + filePath)
+	f, err := os.Open(filePath)
 
 	var streamer beep.StreamSeekCloser
 	var format beep.Format

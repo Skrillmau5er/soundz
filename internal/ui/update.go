@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"math"
-	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/progress"
@@ -45,7 +44,7 @@ func (m model) startSong(index int) (model, tea.Cmd) {
 	row := rows[index]
 	m.currentSongIndex = index
 
-	ctrl, streamer, format, songSampleRate := player.PlaySong(row[3], row[5])
+	ctrl, streamer, format, songSampleRate := player.PlaySongWithVisualizer(m.currentDir+"/"+row[3], row[5], m.visualizer)
 	m.ctrl = ctrl
 	m.streamer = streamer
 	m.format = format
@@ -153,22 +152,26 @@ func (m model) toggleDirSelect() (model, tea.Cmd) {
 	return m, nil
 }
 
-type clearErrorMsg struct{}
-
-func clearErrorAfter(t time.Duration) tea.Cmd {
-	return tea.Tick(t, func(_ time.Time) tea.Msg {
-		return clearErrorMsg{}
-	})
+func (m model) toggleVisualizer() (model, tea.Cmd) {
+	if m.visualizer != nil {
+		enabled := !m.visualizer.IsEnabled()
+		m.visualizer.Enable(enabled)
+	}
+	return m, nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		m.debugMessages = append(m.debugMessages, fmt.Sprintf("WindowSizeMsg: %d x %d", msg.Width, msg.Height))
 		m.termWidth = msg.Width
 		m.termHeight = msg.Height
 		m.updateUIWidths(msg.Width)
 		m.table.SetWidth(msg.Width - 2) // Set the table width to the terminal width
+		if m.visualizer != nil {
+			m.visualizer.SetSize(msg.Width-8, 5)
+		}
 		return m, nil
 	case tea.KeyMsg:
 		switch {
@@ -180,6 +183,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.help.ShowAll = !m.help.ShowAll
 		case key.Matches(msg, m.keys.ChangeDir):
 			return m.toggleDirSelect()
+		case key.Matches(msg, m.keys.ToggleVisualizer):
+			return m.toggleVisualizer()
 		}
 
 		if !m.selectDir {
