@@ -33,14 +33,15 @@ type Model struct {
 // New creates a new visualizer model
 func New() Model {
 	width := 100
+	numBars := width / 2
 	return Model{
 		width:      width,
 		height:     5,
-		numBars:    width,
+		numBars:    numBars,
 		buffer:     make([][2]float64, 0, sampleSize),
-		freqBins:   make([]float64, width),
-		smoothBins: make([]float64, width),
-		peakBins:   make([]float64, width),
+		freqBins:   make([]float64, numBars),
+		smoothBins: make([]float64, numBars),
+		peakBins:   make([]float64, numBars),
 		enabled:    true,
 	}
 }
@@ -50,8 +51,8 @@ func (m *Model) SetSize(width, height int) {
 	defer m.mu.Unlock()
 	m.width = width
 	m.height = height
-	// Calculate number of bars based on width (each bar is 1 character wide)
-	numBars := width
+	// Calculate number of bars based on width (2 characters per bar)
+	numBars := width / 2
 	if numBars < 1 {
 		numBars = 1
 	}
@@ -164,7 +165,7 @@ func (m *Model) performFFT() {
 
 		// Map to logarithmic scale: log10 range from -2 (very low) to 0 (high)
 		// This gives more resolution in lower frequencies
-		minLogFreq := -2.0 // Start at 0.01 * maxFreq
+		minLogFreq := -1.0 // Start at 0.1 * maxFreq (avoids collapsing many bars onto same FFT bin)
 		maxLogFreq := 0.0  // End at 1.0 * maxFreq
 
 		logStart := minLogFreq + linearPos*(maxLogFreq-minLogFreq)
@@ -334,8 +335,8 @@ func (m *Model) View() string {
 			// Use pre-calculated color for this bar
 			style := lipgloss.NewStyle().Foreground(barColors[barIdx])
 
-			// Each bar is exactly 1 character wide - render it
-			sb.WriteString(style.Render(string(char)))
+			// Each bar is 2 characters wide to fill the screen
+			sb.WriteString(style.Render(string(char) + string(char)))
 		}
 		if row < m.height-1 {
 			sb.WriteRune('\n')

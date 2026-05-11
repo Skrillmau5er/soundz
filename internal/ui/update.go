@@ -164,7 +164,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.debugMessages = append(m.debugMessages, fmt.Sprintf("WindowSizeMsg: %d x %d", msg.Width, msg.Height))
 		m.termWidth = msg.Width
 		m.termHeight = msg.Height
 		m.updateUIWidths(msg.Width)
