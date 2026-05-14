@@ -6,17 +6,12 @@ before:
 
 builds:
   - env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     goos:
-      - linux
       - darwin
-      - windows
     goarch:
       - amd64
       - arm64
-    ignore:
-      - goos: windows
-        goarch: arm64
 
 archives:
   - formats: [tar.gz]
@@ -25,9 +20,6 @@ archives:
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else }}{{ .Arch }}{{ end }}
-    format_overrides:
-      - goos: windows
-        formats: [zip]
 
 checksum:
   name_template: checksums.txt
@@ -39,13 +31,14 @@ changelog:
       - "^docs:"
       - "^test:"
 
-brews:
-  - repository:
+homebrew_casks:
+  - name: soundz
+    repository:
       owner: Skrillmau5er
       name: homebrew-soundz
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/Skrillmau5er/soundz"
     description: "A fast, minimal terminal-based music player built in Go"
     license: "MIT"
-    install: |
-      bin.install "soundz"
+    binaries:
+      - soundz
