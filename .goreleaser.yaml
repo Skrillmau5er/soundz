@@ -42,3 +42,9 @@ homebrew_casks:
     license: "MIT"
     binaries:
       - soundz
+    hooks:
+      post:
+        install: |
+          system_command "/usr/bin/xattr",
+            args: ["-d", "com.apple.quarantine", "#{staged_path}/soundz"],
+            must_succeed: false
