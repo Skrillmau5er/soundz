@@ -20,7 +20,13 @@ It uses [Bubble Tea](https://github.com/charmbracelet/bubbletea) for the TUI, [L
 
 ## 🚀 Installation
 
-### Homebrew (macOS / Linux)
+### Homebrew (macOS)
+
+```bash
+brew install --cask Skrillmau5er/soundz/soundz
+```
+
+Or tap first then install:
 
 ```bash
 brew tap Skrillmau5er/soundz
