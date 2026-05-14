@@ -20,9 +20,24 @@ It uses [Bubble Tea](https://github.com/charmbracelet/bubbletea) for the TUI, [L
 
 ## 🚀 Installation
 
-Make sure you have [Go 1.22+](https://go.dev/dl/) installed.  
+### Homebrew (macOS / Linux)
 
 ```bash
-git clone https://github.com/yourusername/soundz.git
+brew tap Skrillmau5er/soundz
+brew install soundz
+```
+
+### Go install
+
+```bash
+go install github.com/skrillmau5er/soundz@latest
+```
+
+### Build from source
+
+Make sure you have [Go 1.22+](https://go.dev/dl/) installed.
+
+```bash
+git clone https://github.com/Skrillmau5er/soundz.git
 cd soundz
 go build -o soundz .
